@@ -1,0 +1,350 @@
+from __future__ import annotations
+
+import requests
+import json
+import math
+from pathlib import Path
+
+import joblib
+import numpy as np
+import pandas as pd
+import streamlit as st
+
+# Project layout: app/app.py, models/crop_recommendation_rf.pkl,
+# models/crop_recommendation_metadata.json
+ROOT = Path(__file__).resolve().parents[1]
+MODEL_PATH = ROOT / "models" / "crop_recommendation_rf.pkl"
+METADATA_PATH = ROOT / "models" / "crop_recommendation_metadata.json"
+
+DEFAULT_FEATURES = ["N", "P", "K", "temperature", "humidity", "ph", "rainfall"]
+DISPLAY_NAMES = {
+    "N": "Nitrogen (N)", "P": "Phosphorus (P)", "K": "Potassium (K)",
+    "temperature": "Temperature (°C)", "humidity": "Relative humidity (%)",
+    "ph": "Soil pH", "rainfall": "Rainfall (mm)"
+}
+HELP_TEXT = {
+    "N": "Nitrogen value recorded for the soil sample.",
+    "P": "Phosphorus value recorded for the soil sample.",
+    "K": "Potassium value recorded for the soil sample.",
+    "temperature": "Environmental temperature in degrees Celsius.",
+    "humidity": "Relative humidity percentage.",
+    "ph": "Measured soil pH.",
+    "rainfall": "Rainfall measurement in millimetres."
+}
+
+crop_classes = [
+    "apple", "banana", "blackgram", "chickpea", "coconut", "coffee",
+    "cotton", "grapes", "jute", "kidneybeans", "lentil", "maize",
+    "mango", "mothbeans", "mungbean", "muskmelon", "orange", "papaya",
+    "pigeonpeas", "pomegranate", "rice", "watermelon"
+]
+
+API_URL = "http://127.0.0.1:8000/predict"
+HEALTH_URL = "http://127.0.0.1:8000/health"
+
+st.set_page_config(page_title="Crop Recommendation System", page_icon="logo.png", layout="wide")
+
+#custom css
+st.markdown(
+    """
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .sub-header {
+            font-size: 1.5rem;
+            color: #3B82F6;
+            font-weight: bold;
+            margin-top: 1.5rem;
+        }
+        
+        div.stFormSubmitButton > button {
+        background-color: #198754;
+        color: white;
+        width: 100%;
+        border-radius: 10px;
+        border: none;
+        font-size: 18px;
+        font-weight: 600;
+        padding: 0.75rem;
+        }
+
+        div.stFormSubmitButton > button:hover {
+        background-color: #146c43;
+        color: white;
+        }
+
+        div.stFormSubmitButton > button[kind="secondary"] {
+        background-color: #6c757d;
+        color: white;
+        }
+
+        div.stFormSubmitButton > button[kind="secondary"]:hover {
+        background-color: #5a6268;
+        color: white;
+        }
+    </style>
+    
+    """,unsafe_allow_html=True)
+
+@st.cache_data
+def load_metadata(metadata_path):
+
+    with open(metadata_path, "r", encoding="utf-8") as file:
+        metadata = json.load(file)
+
+    return metadata
+
+def parse_finite_number(raw_value: str, feature: str) -> float:
+    """Convert a text field to a finite float or raise a useful ValueError."""
+    value_text = raw_value.strip()
+    if not value_text:
+        raise ValueError(f"{DISPLAY_NAMES[feature]} is required.")
+    try:
+        value = float(value_text)
+    except (TypeError, ValueError):
+        raise ValueError(f"{DISPLAY_NAMES[feature]} must be a valid number.") from None
+    if not math.isfinite(value):
+        raise ValueError(f"{DISPLAY_NAMES[feature]} must be finite (not NaN or infinity).")
+    return value
+
+def display_model_info():
+    with st.expander("Crop classes available for prediction"):
+        st.caption(
+            # f" ({len(crop_classes)}): "
+            ", ".join(crop_classes)
+            )
+        
+with st.sidebar:
+    st.image("logo.png", width="content")
+    st.title("AI-Based Crop Recommendation")
+    display_model_info()
+    
+
+st.subheader(
+    "Enter soil nutrient and environmental measurements to receive a crop recommendation "
+    "from the trained Random Forest classifier."
+)
+st.caption("Decision-support prototype only. Confirm recommendations with local agricultural expertise.")
+
+missing_files = [p for p in (MODEL_PATH, METADATA_PATH) if not p.is_file()]
+if missing_files:
+    st.error("Required model artifacts were not found:")
+    for path in missing_files:
+        st.code(str(path))
+    st.info(
+        "Run the model-saving cell at the end of the Module 5 notebook, then copy "
+        "`crop_recommendation_rf.pkl` and `crop_recommendation_metadata.json` into the "
+        "project's `models/` directory."
+    )
+    st.stop()
+
+
+if not METADATA_PATH.is_file():
+    st.error("Model metadata file was not found.")
+    st.stop()
+try:
+    metadata = load_metadata(str(METADATA_PATH))
+except Exception as exc:
+    st.error(f"Could not load model metadata: {exc}")
+    st.stop()
+
+features = metadata.get("features", DEFAULT_FEATURES)
+if features != DEFAULT_FEATURES:
+    st.warning(
+        "The metadata feature order differs from the expected project order. "
+        "The application will use the feature order recorded in metadata."
+    )
+
+ranges = metadata.get("training_range", {})
+if not all(feature in features for feature in DEFAULT_FEATURES):
+    st.error("Model metadata does not contain all seven expected input features.")
+    st.stop()
+
+defaults = {
+    "N": "90", "P": "42", "K": "43", "temperature": "20.9",
+    "humidity": "82.0", "ph": "6.5", "rainfall": "202.9"
+}
+
+# Apply reset values before the corresponding widgets are instantiated.
+if st.session_state.pop("reset_crop_form", False):
+    for feature in DEFAULT_FEATURES:
+        st.session_state[f"input_{feature}"] = defaults[feature]
+
+# Initialize input widget state once, before creating the widgets.
+for feature in DEFAULT_FEATURES:
+    st.session_state.setdefault(f"input_{feature}", defaults[feature])
+
+with st.form("crop_inputs"):
+    st.subheader("Soil and environmental inputs")
+    st.write("Enter the seven values used by the model.")
+    columns = st.columns(2)
+    raw_values = {}
+    for idx, feature in enumerate(DEFAULT_FEATURES):
+        with columns[idx % 2]:
+            raw_values[feature] = st.text_input(
+                DISPLAY_NAMES[feature],
+                help=HELP_TEXT[feature],
+                key=f"input_{feature}"
+            )
+    form_col1, form_col2 = st.columns(2)
+    with form_col1:
+        submitted = st.form_submit_button(
+            "Recommend crop", use_container_width=True
+        )
+    with form_col2:
+        clear_clicked = st.form_submit_button(
+            "Clear prediction & reset", use_container_width=True
+        )
+
+# Clear/reset all input fields and saved prediction results.
+if clear_clicked:
+    # Streamlit does not allow changing widget state after those widgets are instantiated.
+    # Use a separate reset flag; the next run applies defaults before creating widgets.
+    st.session_state["reset_crop_form"] = True
+    st.session_state.pop("crop_prediction_result", None)
+    st.session_state.pop("crop_prediction_error", None)
+    st.rerun()
+
+if submitted:
+    errors = []
+    values = {}
+    for feature in DEFAULT_FEATURES:
+        try:
+            values[feature] = parse_finite_number(raw_values.get(feature, ""), feature)
+        except ValueError as exc:
+            errors.append(str(exc))
+
+    if errors:
+        st.error("Please correct the following input issue(s):")
+        for error in errors:
+            st.write(f"- {error}")
+    else:
+        warnings = []
+        for feature, value in values.items():
+            feature_range = ranges.get(feature)
+            if isinstance(feature_range, dict) and "min" in feature_range and "max" in feature_range:
+                minimum, maximum = float(feature_range["min"]), float(feature_range["max"])
+                if value < minimum or value > maximum:
+                    warnings.append(
+                        f"**{DISPLAY_NAMES[feature]} = {value:g}** is outside the observed "
+                        f"training range ({minimum:g} to {maximum:g}). The prediction may be less reliable."
+                    )
+            else:
+                warnings.append(
+                    f"No observed training range is available for {DISPLAY_NAMES[feature]}; "
+                    "range checking was skipped for this feature."
+                )
+
+        if warnings:
+            st.warning("Input range warning")
+            for warning in warnings:
+                st.markdown(f"- {warning}")
+
+        
+        # ---------------------------------------------
+        # Send prediction request to FastAPI
+        # ---------------------------------------------
+
+        try:
+
+            with st.spinner(
+                "Analyzing soil and climate data... Please wait."
+            ):
+
+                # Send the seven input measurements to FastAPI
+                response = requests.post(
+                    API_URL,
+                    json=values,
+                    timeout=30
+                )
+
+                # Check whether the API request succeeded
+                response.raise_for_status()
+
+                # Convert API response into Python dictionary
+                api_result = response.json()
+
+                # Retrieve prediction information
+                prediction = api_result["predicted_crop"]
+                confidence = float(api_result["confidence"])
+
+                # Convert API probabilities into the format
+                # expected by the existing Streamlit interface
+                probability_table = [
+                    {
+                        "Crop": item["crop"],
+                        "Probability": item["probability"]
+                    }
+                    for item in api_result["top_predictions"]
+                ]
+
+            # Save prediction results in session state
+            st.session_state["crop_prediction_result"] = {
+                "prediction": prediction,
+                "confidence": confidence,
+                "probability_table": probability_table
+
+            }
+            st.session_state.pop("crop_prediction_error", None)
+        except requests.exceptions.ConnectionError:
+            st.session_state.pop("crop_prediction_result", None)
+            st.session_state["crop_prediction_error"] = (
+                "Cannot connect to the FastAPI server. "
+                "Please make sure the API is running."
+            )
+        except requests.exceptions.Timeout:
+            st.session_state.pop("crop_prediction_result", None)
+            st.session_state["crop_prediction_error"] = (
+                "The prediction request timed out. Please try again."
+            )
+        except requests.exceptions.HTTPError:
+            st.session_state.pop("crop_prediction_result", None)
+            st.session_state["crop_prediction_error"] = (
+                f"API request failed with status "
+                f"{response.status_code}: {response.text}"
+            )
+        except Exception as exc:
+            st.session_state.pop("crop_prediction_result", None)
+            st.session_state["crop_prediction_error"] = (
+                f"Prediction could not be completed: {exc}"
+            )
+
+
+# Render the saved result on every rerun until the user clears/resets it.
+result = st.session_state.get("crop_prediction_result")
+if result:
+    st.divider()
+    st.subheader("Recommended crop")
+    st.success(result["prediction"].title())
+    st.metric("Model confidence", f'{result["confidence"]:.1%}')
+    st.caption(
+        "Confidence is the model's highest predicted class probability; it is not a "
+        "guarantee of crop success or a calibrated measure of real-world certainty."
+    )
+    with st.expander("Top 3 crop probabilities"):
+        probability_table = pd.DataFrame(result["probability_table"])
+        probability_table["Probability"] = probability_table["Probability"].map(
+            lambda value: f"{value:.1%}"
+        )
+        st.dataframe(probability_table, use_container_width=True, hide_index=True)
+
+prediction_error = st.session_state.get("crop_prediction_error")
+if prediction_error:
+    st.error(prediction_error)
+
+with st.expander("About this prototype"):
+    st.markdown(
+        """
+        - **Model:** saved Random Forest classifier produced by the Module 5 notebook.
+        - **Inputs:** N, P, K, temperature, humidity, pH, and rainfall.
+        - **Validation:** required values must be numeric and finite; observed training
+          ranges are checked using the saved metadata.
+        - **Output:** predicted crop, maximum class probability, and top five class probabilities.
+        - **Limitations:** this dataset does not represent every location, season, soil type,
+          or agronomic factor. This tool should support—not replace—professional local advice.
+        """
+    )
