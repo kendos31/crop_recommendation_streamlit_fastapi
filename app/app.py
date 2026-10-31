@@ -13,7 +13,7 @@ import streamlit as st
 # Project layout: app/app.py, models/crop_recommendation_rf.pkl,
 # models/crop_recommendation_metadata.json
 ROOT = Path(__file__).resolve().parents[1]
-MODEL_PATH = ROOT / "models" / "crop_recommendation_rf.pkl"
+# MODEL_PATH = ROOT / "models" / "crop_recommendation_rf.pkl"
 METADATA_PATH = ROOT / "models" / "crop_recommendation_metadata.json"
 
 DEFAULT_FEATURES = ["N", "P", "K", "temperature", "humidity", "ph", "rainfall"]
@@ -136,16 +136,20 @@ st.subheader(
 )
 st.caption("Decision-support prototype only. Confirm recommendations with local agricultural expertise.")
 
-missing_files = [p for p in (MODEL_PATH, METADATA_PATH) if not p.is_file()]
-if missing_files:
-    st.error("Required model artifacts were not found:")
-    for path in missing_files:
-        st.code(str(path))
-    st.info(
-        "Run the model-saving cell at the end of the Module 5 notebook, then copy "
-        "`crop_recommendation_rf.pkl` and `crop_recommendation_metadata.json` into the "
-        "project's `models/` directory."
-    )
+# # missing_files = [p for p in (MODEL_PATH, METADATA_PATH) if not p.is_file()]
+# if missing_files:
+#     st.error("Required model artifacts were not found:")
+#     for path in missing_files:
+#         st.code(str(path))
+#     st.info(
+#         "Run the model-saving cell at the end of the Module 5 notebook, then copy "
+#         "`crop_recommendation_rf.pkl` and `crop_recommendation_metadata.json` into the "
+#         "project's `models/` directory."
+#     )
+#     st.stop()
+
+if not METADATA_PATH.is_file():
+    st.error("Model metadata file was not found.")
     st.stop()
 
 
@@ -265,7 +269,7 @@ if submitted:
                 response = requests.post(
                     API_URL,
                     json=values,
-                    timeout=30
+                    timeout=120
                 )
 
                 # Check whether the API request succeeded
