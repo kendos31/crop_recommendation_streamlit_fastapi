@@ -39,14 +39,14 @@ crop_classes = [
     "pigeonpeas", "pomegranate", "rice", "watermelon"
 ]
 # For local testing, the FastAPI server should be running on the same machine as Streamlit.
-# API_URL = "http://127.0.0.1:8000/predict"
-# HEALTH_URL = "http://127.0.0.1:8000/health"
+API_URL = "http://127.0.0.1:8000/predict"
+HEALTH_URL = "http://127.0.0.1:8000/health"
 
 #For online testing, the FastAPI server should be running on the same machine as Streamlit.
-API_BASE_URL = st.secrets["API_BASE_URL"]
+# API_BASE_URL = st.secrets["API_BASE_URL"]
 
-API_URL = f"{API_BASE_URL}/predict"
-HEALTH_URL = f"{API_BASE_URL}/health"
+# API_URL = f"{API_BASE_URL}/predict"
+# HEALTH_URL = f"{API_BASE_URL}/health"
 
 st.set_page_config(page_title="Crop Recommendation System", page_icon="logo.png", layout="wide")
 
@@ -203,11 +203,11 @@ with st.form("crop_inputs"):
     form_col1, form_col2 = st.columns(2)
     with form_col1:
         submitted = st.form_submit_button(
-            "Recommend crop", use_container_width=True
+            "Recommend crop", width="stretch"
         )
     with form_col2:
         clear_clicked = st.form_submit_button(
-            "Clear prediction & reset", use_container_width=True
+            "Clear prediction & reset", width="stretch"
         )
 
 # Clear/reset all input fields and saved prediction results.
@@ -340,7 +340,7 @@ if result:
         probability_table["Probability"] = probability_table["Probability"].map(
             lambda value: f"{value:.1%}"
         )
-        st.dataframe(probability_table, use_container_width=True, hide_index=True)
+        st.dataframe(probability_table, width="stretch", hide_index=True)
 
 prediction_error = st.session_state.get("crop_prediction_error")
 if prediction_error:
