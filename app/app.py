@@ -39,14 +39,14 @@ crop_classes = [
     "pigeonpeas", "pomegranate", "rice", "watermelon"
 ]
 # For local testing, the FastAPI server should be running on the same machine as Streamlit.
-API_URL = "http://127.0.0.1:8000/predict"
-HEALTH_URL = "http://127.0.0.1:8000/health"
+# API_URL = "http://127.0.0.1:8000/predict"
+# HEALTH_URL = "http://127.0.0.1:8000/health"
 
 #For online testing, the FastAPI server should be running on the same machine as Streamlit.
-# API_BASE_URL = st.secrets["API_BASE_URL"]
+API_BASE_URL = st.secrets["API_BASE_URL"]
 
-# API_URL = f"{API_BASE_URL}/predict"
-# HEALTH_URL = f"{API_BASE_URL}/health"
+API_URL = f"{API_BASE_URL}/predict"
+HEALTH_URL = f"{API_BASE_URL}/health"
 
 st.set_page_config(page_title="Crop Recommendation System", page_icon="logo.png", layout="wide")
 
