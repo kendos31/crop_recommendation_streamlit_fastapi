@@ -148,9 +148,9 @@ st.caption("Decision-support prototype only. Confirm recommendations with local 
 #     )
 #     st.stop()
 
-if not METADATA_PATH.is_file():
-    st.error("Model metadata file was not found.")
-    st.stop()
+# if not METADATA_PATH.is_file():
+#     st.error("Model metadata file was not found.")
+#     st.stop()
 
 
 if not METADATA_PATH.is_file():
