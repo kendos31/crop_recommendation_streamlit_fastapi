@@ -120,7 +120,6 @@ def parse_finite_number(raw_value: str, feature: str) -> float:
 def display_model_info():
     with st.expander("Crop classes available for prediction"):
         st.caption(
-            # f" ({len(crop_classes)}): "
             ", ".join(crop_classes)
             )
         
@@ -148,9 +147,9 @@ st.caption("Decision-support prototype only. Confirm recommendations with local 
 #     )
 #     st.stop()
 
-# if not METADATA_PATH.is_file():
-#     st.error("Model metadata file was not found.")
-#     st.stop()
+if not METADATA_PATH.is_file():
+    st.error("Model metadata file was not found.")
+    st.stop()
 
 
 if not METADATA_PATH.is_file():
