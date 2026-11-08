@@ -135,17 +135,6 @@ st.subheader(
 )
 st.caption("Decision-support prototype only. Confirm recommendations with local agricultural expertise.")
 
-# # missing_files = [p for p in (MODEL_PATH, METADATA_PATH) if not p.is_file()]
-# if missing_files:
-#     st.error("Required model artifacts were not found:")
-#     for path in missing_files:
-#         st.code(str(path))
-#     st.info(
-#         "Run the model-saving cell at the end of the Module 5 notebook, then copy "
-#         "`crop_recommendation_rf.pkl` and `crop_recommendation_metadata.json` into the "
-#         "project's `models/` directory."
-#     )
-#     st.stop()
 
 if not METADATA_PATH.is_file():
     st.error("Model metadata file was not found.")
