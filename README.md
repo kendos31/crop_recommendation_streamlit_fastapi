@@ -1,6 +1,6 @@
-# 📂 AI-Based Crop Recommendation System Using Soil and Environmental Conditions --- Streamlit + FastAPI
+#  AI-Based Crop Recommendation System Using Soil and Environmental Conditions --- Streamlit + FastAPI
 
-## 🗒️ Project Information
+##  Project Information
 - **Project Title:** AI-Based Crop Recommendation System Using Soil and Environmental Conditions
 
 - **Assigned Domain:** Agriculture / Agritech
@@ -25,7 +25,7 @@
 
 
 
-## 📬 Contact Information
+##  Contact Information
 ### A. Project Manager
 - Name :Kibreab Simon Rike
 
@@ -45,7 +45,7 @@ sends them to FastAPI. FastAPI validates the request, runs the trained
 model, and returns the recommended crop and the three highest class
 probabilities. Streamlit displays the response.
 
-## 📂 Project structure Data & File Overview
+## Project structure Data & File Overview
 ### File List
 
 ``` text
@@ -87,7 +87,7 @@ process. Joblib/pickle files can execute code when loaded. Use a
 compatible scikit-learn version when saving and loading the model;
 scikit-learn does not guarantee cross-version model compatibility.*</span>
 
-## 🔑 2. Python and environment setup
+##  2. Python and environment setup
 
 Python **3.11** is recommended for this project. Python 3.10 may also
 work if all installed package versions support it.
@@ -156,7 +156,7 @@ MODEL_PATH = BASE_DIR / "models" / "crop_recommendation_rf.pkl"
 METADATA_PATH = BASE_DIR / "models" / "crop_recommendation_metadata.json"
 ```
 
-## 🌐 API endpoints
+## API endpoints
 
   Method   Endpoint     Purpose
   -------- ------------ -----------------------------------------------------
@@ -210,7 +210,7 @@ inference is handled by FastAPI.
 If the API is not running or cannot be reached, Streamlit should display
 a connection error. Start FastAPI before submitting a prediction.
 
-## 📊 5. Input fields
+## 5. Input fields
 
 The prediction request uses the seven features from the Module 5 crop
 recommendation model:
@@ -320,7 +320,7 @@ that:
 
 Using `python -m pytest -v` from the project root is recommended.
 
-## 🧪 8. Troubleshooting
+##  8. Troubleshooting
 
 -   **Model or metadata missing:** Run the Module 5 notebook's
     model-saving cell and copy both generated files into `models/`.
@@ -348,7 +348,7 @@ Using `python -m pytest -v` from the project root is recommended.
 
 ## 9. Responsible use and limitations
 
-## 📊 Dataset Statistics
+##  Dataset Statistics
 The Module 5 model was trained on a dataset with 2,200 records and 22
 crop classes, as described in the project report. The dataset does not
 represent every location, season, soil type, or agronomic factor. It may
