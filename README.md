@@ -230,7 +230,7 @@ Streamlit application also checks that entered values are numeric and
 finite and can warn when values fall outside the observed training
 ranges stored in the metadata.
 
-## 🧪6. Test a prediction through Swagger UI
+## 6. Test a prediction through Swagger UI
 
 1.  Start FastAPI.
 2.  Open <http://127.0.0.1:8000/docs>.
