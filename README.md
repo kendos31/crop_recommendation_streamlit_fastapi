@@ -20,10 +20,9 @@
 5. Zekiyos Abayneh Bochera
 6. Abdurhman Dekebo Rabis  
 7. Meshkura Redi  
+8. Nebiha Ahmed Redi
 9. Getachew Endale Reta 
 10. Kbreab Simon Rike
-
-
 
 ##  Contact Information
 ### A. Project Manager
